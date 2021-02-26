@@ -342,10 +342,12 @@ void DisplayWeather() {                          // 4.7" e-paper display is 960x
   DisplayStatusSection(600, 20, wifi_signal);    // Wi-Fi signal strength and Battery voltage
   DisplayGeneralInfoSection();                   // Top line of the display
   DisplayDisplayWindSection(137, 150, WxConditions[0].Winddir, WxConditions[0].Windspeed, 100);
-  DisplayAstronomySection(5, 255);               // Astronomy section Sun rise/set, Moon phase and Moon icon
+  DisplayAstronomySectionVert(510, 15);               // Astronomy section Sun rise/set, Moon phase and Moon icon
+  //DisplayAstronomySection(5, 255);               // Astronomy section Sun rise/set, Moon phase and Moon icon
   DisplayMainWeatherSection(320, 110);           // Centre section of display for Location, temperature, Weather report, current Wx Symbol
   DisplayWeatherIcon(810, 130);                  // Display weather icon    scale = Large;
-  DisplayForecastSection(320, 220);              // 3hr forecast boxes
+  DisplayForecastSection(280, 220, 8);              // 3hr forecast boxes
+  DisplayForecastGraphSection();              // 3hr forecast boxes
 }
 
 void DisplayGeneralInfoSection() {
@@ -466,10 +468,10 @@ void DisplayPressureSection(int x, int y, float pressure, String slope) {
 void DisplayForecastWeather(int x, int y, int index) {
   int fwidth = 90;
   x = x + fwidth * index;
-  DisplayConditionsSection(x + fwidth / 2, y + 90, WxForecast[index].Icon, SmallIcon);
+  DisplayConditionsSection(x, y + 90, WxForecast[index].Icon, SmallIcon);
   setFont(OpenSans10B);
-  drawString(x + fwidth / 2, y + 30, String(ConvertUnixTime(WxForecast[index].Dt + WxConditions[0].Timezone).substring(0, 5)), CENTER);
-  drawString(x + fwidth / 2, y + 125, String(WxForecast[index].High, 0) + "°/" + String(WxForecast[index].Low, 0) + "°", CENTER);
+  drawString(x, y + 30, String(ConvertUnixTime(WxForecast[index].Dt + WxConditions[0].Timezone).substring(0, 5)), CENTER);
+  drawString(x, y + 125, String(WxForecast[index].High, 0) + "°/" + String(WxForecast[index].Low, 0) + "°", CENTER);
 }
 
 void DisplayAstronomySection(int x, int y) {
@@ -484,6 +486,20 @@ void DisplayAstronomySection(int x, int y) {
   drawString(x + 5, y + 70, MoonPhase(day_utc, month_utc, year_utc, Hemisphere), LEFT);
   DrawMoonImage(x + 198, y + 23); // Different references
   DrawMoon(x + 160, y - 15, day_utc, month_utc, year_utc, Hemisphere);
+}
+
+void DisplayAstronomySectionVert(int x, int y) {
+  time_t now = time(NULL);
+  struct tm * now_utc  = gmtime(&now);
+  const int day_utc    = now_utc->tm_mday;
+  const int month_utc  = now_utc->tm_mon + 1;
+  const int year_utc   = now_utc->tm_year + 1900;
+  DrawMoonImage(x + 38, y + 23); // Different references
+  DrawMoon(x, y - 15, day_utc, month_utc, year_utc, Hemisphere);
+  setFont(OpenSans10B);
+  drawString(x, y + 105, ConvertUnixTime(WxConditions[0].Sunrise).substring(0, 5) + " " + TXT_SUNRISE, LEFT);
+  drawString(x, y + 125, ConvertUnixTime(WxConditions[0].Sunset).substring(0, 5) + " " + TXT_SUNSET, LEFT);
+  drawString(x, y + 145, MoonPhase(day_utc, month_utc, year_utc, Hemisphere), LEFT);
 }
 
 void DrawMoonImage(int x, int y) {
@@ -558,12 +574,15 @@ String MoonPhase(int d, int m, int y, String hemisphere) {
   return "";
 }
 
-void DisplayForecastSection(int x, int y) {
+void DisplayForecastSection(int x, int y, int nb) {
   int f = 0;
   do {
     DisplayForecastWeather(x, y, f);
     f++;
-  } while (f < max_readings);
+  } while (f < nb);
+}
+
+void DisplayForecastGraphSection() {
   int r = 0;
   do { // Pre-load temporary arrays with with data - because C parses by reference and remember that[1] has already been converted to I units
     if (Units == "I") pressure_readings[r] = WxForecast[r].Pressure * 0.02953;   else pressure_readings[r] = WxForecast[r].Pressure;
